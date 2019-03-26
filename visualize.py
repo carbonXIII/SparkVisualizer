@@ -27,6 +27,11 @@ def server_loop(sock, rdds):
     with sock:
         with sock.makefile('r') as f:
             for line in f:
+                if line.strip() == 'clear':
+                    rdds.clear()
+                    rdds['clear'] = True
+                    continue
+
                 words = line.split()
 
                 id = int(words[0])
@@ -72,10 +77,14 @@ plt.show()
 
 g = nx.DiGraph()
 while server.is_alive():
+    if 'clear' in rdds:
+        g.clear()
+        del rdds['clear']
+
     plt.clf()
     for id in rdds:
         rdds[id].draw(g)
-    pos = nx.circular_layout(g)
+    pos = nx.drawing.nx_agraph.graphviz_layout(g, prog='dot')
     nx.draw(g, pos, with_labels=True, node_size=1000)
     plt.draw()
     plt.pause(2)
