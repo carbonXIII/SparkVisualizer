@@ -1,19 +1,19 @@
 # SparkVisualizer
 A simple DAG visualizer for spark using instrumentation and python networkx
 
-**Building:
+## Building:
 Just run the gradle script to build the Java agent.
 ```
 gradle build
 ```
 
-***Dependencies:
+## Dependencies:
 Python visualizer:
 - networkx
 - tkinter
 - graphviz (and pygraphviz)
 
-***Running
+## Running
 Run the visualizer itself:
 ```
 python3 visualizer.py
