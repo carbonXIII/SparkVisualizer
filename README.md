@@ -20,6 +20,6 @@ python3 visualizer.py
 ```
 Run the desired spark program with the javaagent specified in --driver-java-options
 ```
-spark-shell --driver-java-options "-javaagent:/home/shado/workspace/rbc/SparkVisualizer/build/libs/SparkVisualizer-unspecified.jar"
+spark-shell --driver-java-options "-javaagent:./build/libs/SparkVisualizer-unspecified.jar"
 ```
 
