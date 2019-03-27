@@ -2,31 +2,34 @@ repositories {
     mavenCentral()
 }
 
-apply plugin: 'java'
+apply plugin: 'scala'
 
 sourceSets {
     main {
-        java {
+        scala {
             srcDirs = ['src/main']
         }
     }
 }
 
 dependencies {
+    implementation 'org.scala-lang:scala-library:2.11.12'
     compile group: 'org.javassist', name: 'javassist', version: '3.24.1-GA'
 
     compile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.26'
+
+    compile group: 'org.apache.spark', name: 'spark-core_2.12', version: '2.4.0'
 }
 
 jar {
     archiveName = "${rootProject.name}-${rootProject.version}.jar"
     manifest {
         attributes(
-                'Premain-Class': 'ExecutorAgent',
+                'Premain-Class': 'SparkAgent',
                 'Can-Redefine-Classes': 'true',
                 'Can-Retransform-Classes': 'true',
                 'Can-Set-Native-Method-Prefix': 'true',
-                'Implementation-Title': "ExecutorTransformer",
+                'Implementation-Title': "SchedulerTransformer",
                 'Implementation-Version': rootProject.version
         )
     }

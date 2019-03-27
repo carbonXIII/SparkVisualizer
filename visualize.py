@@ -2,7 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 import socket
-from threading import Thread
+from threading import Thread, Lock
 from time import sleep
 
 class RDD:
@@ -23,39 +23,40 @@ class RDD:
             if not to_add in g.edges():
                 g.add_edge(self, dep)
 
-def server_loop(sock, rdds):
+def server_loop(sock, rdds, rdds_lock):
     with sock:
         with sock.makefile('r') as f:
             for line in f:
-                if line.strip() == 'clear':
-                    rdds.clear()
-                    rdds['clear'] = True
-                    continue
+                with rdds_lock:
+                    if line.strip() == 'clear':
+                        rdds.clear()
+                        rdds['clear'] = True
+                        continue
 
-                words = line.split()
+                    words = line.split()
 
-                id = int(words[0])
-                deps = []
+                    id = int(words[0])
+                    deps = []
 
-                if not id in rdds:
-                    rdds[id] = RDD(id)
-                    print('created',rdds[id])
+                    if not id in rdds:
+                        rdds[id] = RDD(id)
+                        print('created',rdds[id])
 
-                ndeps = int(words[1])
-                for i in range(ndeps):
-                    oid = int(words[2 + i])
+                    ndeps = int(words[1])
+                    for i in range(ndeps):
+                        oid = int(words[2 + i])
 
-                    if not oid in rdds:
-                        rdds[oid] = RDD(oid)
-                        print('created',rdds[oid])
+                        if not oid in rdds:
+                            rdds[oid] = RDD(oid)
+                            print('created',rdds[oid])
 
-                    print(rdds[id],'->',rdds[oid])
+                        print(rdds[id],'->',rdds[oid])
 
-                    deps += [rdds[oid]]
+                        deps += [rdds[oid]]
 
-                rdds[id].set_deps(deps)
+                    rdds[id].set_deps(deps)
 
-def run_server(port, rdds):
+def run_server(port, rdds, rdds_lock):
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serversocket.bind((socket.gethostname(), port))
     serversocket.listen(1)
@@ -64,27 +65,29 @@ def run_server(port, rdds):
 
     print('Connected at',addr)
 
-    thread = Thread(target=server_loop, args=(conn, rdds))
+    thread = Thread(target=server_loop, args=(conn, rdds, rdds_lock))
     thread.start()
     return thread
 
 # wait for a connection
 rdds = {}
-server = run_server(8001, rdds)
+rdds_lock = Lock()
+server = run_server(8001, rdds, rdds_lock)
 
 plt.ion()
 plt.show()
 
 g = nx.DiGraph()
 while server.is_alive():
-    if 'clear' in rdds:
-        g.clear()
-        del rdds['clear']
+    with rdds_lock:
+        if 'clear' in rdds:
+            g.clear()
+            del rdds['clear']
 
-    plt.clf()
-    for id in rdds:
-        rdds[id].draw(g)
-    pos = nx.drawing.nx_agraph.graphviz_layout(g, prog='dot')
-    nx.draw(g, pos, with_labels=True, node_size=1000)
-    plt.draw()
-    plt.pause(2)
+        plt.clf()
+        for id in rdds:
+            rdds[id].draw(g)
+        pos = nx.drawing.nx_agraph.graphviz_layout(g, prog='dot')
+        nx.draw(g, pos, with_labels=True, node_size=1000)
+        plt.draw()
+        plt.pause(2)

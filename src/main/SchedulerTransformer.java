@@ -2,6 +2,7 @@ import java.lang.instrument.ClassFileTransformer;
 
 import javassist.CannotCompileException;
 import javassist.ClassPool;
+import javassist.ClassClassPath;
 import javassist.CtClass;
 import javassist.CtMethod;
 import javassist.NotFoundException;
@@ -14,13 +15,15 @@ import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
 
-public class ExecutorTransformer implements ClassFileTransformer {
-    static Logger log = LoggerFactory.getLogger(ExecutorTransformer.class);
+public class SchedulerTransformer implements ClassFileTransformer {
+    static Logger log = LoggerFactory.getLogger(SchedulerTransformer.class);
 
     private String targetClassName;
     private ClassLoader targetClassLoader;
 
-    public ExecutorTransformer(String targetClassName,
+    static String SUBMIT_STAGE = "org$apache$spark$scheduler$DAGScheduler$$submitStage";
+
+    public SchedulerTransformer(String targetClassName,
                                ClassLoader targetClassLoader) {
         this.targetClassName = targetClassName;
         this.targetClassLoader = targetClassLoader;
@@ -42,14 +45,18 @@ public class ExecutorTransformer implements ClassFileTransformer {
         byte[] byteCode = classfileBuffer;
 
         if(loader.equals(this.targetClassLoader)) {
-            log.info("Transforming class Executor");
+            log.info("Transforming class: " + targetClassName);
 
             try {
                 ClassPool cp = ClassPool.getDefault();
+                cp.insertClassPath(new ClassClassPath(org.apache.spark.scheduler.DAGScheduler.class));
                 CtClass cc = cp.get(this.targetClassName);
 
-                CtMethod runMethod = cc.getDeclaredMethod("run");
-                runMethod.insertBefore("System.out.println(\"ONE OF US\");");
+                CtMethod targetMethod = cc.getDeclaredMethod(SUBMIT_STAGE);
+                StringBuilder toAdd = new StringBuilder();
+                toAdd.append("DAGVisualizer.get().clear();");
+                toAdd.append("DAGVisualizer.get().submitAll(stage.rdd());\n");
+                targetMethod.insertBefore(toAdd.toString());
 
                 byteCode = cc.toBytecode();
                 cc.detach();
