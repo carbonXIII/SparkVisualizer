@@ -18,10 +18,10 @@ class RDD:
 
     def draw(self, g):
         for dep in self.deps:
-            to_add = (self, dep)
+            to_add = (dep, self)
 
             if not to_add in g.edges():
-                g.add_edge(self, dep)
+                g.add_edge(*to_add)
 
 def server_loop(sock, rdds, rdds_lock):
     with sock:
